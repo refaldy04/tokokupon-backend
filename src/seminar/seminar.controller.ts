@@ -30,6 +30,7 @@ export class SeminarController {
 
   @Post()
   create(@Body() dto: CreateSeminarDto) {
+    console.log('dto', dto);
     return this.seminarService.create(dto);
   }
 
