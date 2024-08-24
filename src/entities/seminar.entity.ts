@@ -25,6 +25,8 @@ export class Seminar {
   @ManyToOne(() => User, (user) => user.seminars)
   creator: User;
 
-  @OneToMany(() => SeminarParticipant, (participant) => participant.seminar)
+  @OneToMany(() => SeminarParticipant, (participant) => participant.seminar, {
+    cascade: true,
+  })
   participants: SeminarParticipant[];
 }

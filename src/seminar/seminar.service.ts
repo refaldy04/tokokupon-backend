@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Seminar } from 'src/entities/seminar.entity';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { CreateSeminarDto } from './dto/createSeminar.dto';
 import { UpdateSeminarDto } from './dto/updateSeminar.dto';
 import { PaginationDto } from './dto/pagination.dto';
@@ -139,6 +139,11 @@ export class SeminarService {
       throw new ForbiddenException(
         'You are not allowed to delete this seminar',
       );
+    }
+
+    if (seminar.participants.length > 0) {
+      const participantIds = seminar.participants.map((p) => p.id);
+      await this.seminarParticipantRepo.delete({ id: In(participantIds) });
     }
 
     // Hapus seminar
