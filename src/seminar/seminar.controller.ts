@@ -27,15 +27,27 @@ export class SeminarController {
     return this.seminarService.findAll(paginationDto);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('joined')
+  async getJoinedSeminars(@Req() req) {
+    return this.seminarService.getUserJoinedSeminars(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('created')
+  async getCreatedSeminars(@Req() req) {
+    return this.seminarService.getCreatedSeminars(req.user.id);
+  }
+
   @Get(':id')
   findOne(@Param('id') id) {
     return this.seminarService.findOne(id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() dto: CreateSeminarDto) {
-    console.log('dto', dto);
-    return this.seminarService.create(dto);
+  create(@Req() req, @Body() dto: CreateSeminarDto) {
+    return this.seminarService.create(dto, req.user.id);
   }
 
   @Patch(':id')
@@ -52,5 +64,15 @@ export class SeminarController {
   @Post(':id/join')
   async joinSeminar(@Req() req, @Param('id', ParseIntPipe) id: number) {
     return this.seminarService.joinSeminar(id, req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':seminarId')
+  async deleteSeminar(
+    @Param('seminarId', ParseIntPipe) seminarId: number,
+    @Req() req,
+  ) {
+    const userId = req.user.id;
+    return this.seminarService.deleteSeminar(seminarId, userId);
   }
 }

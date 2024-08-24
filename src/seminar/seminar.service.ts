@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -36,8 +37,22 @@ export class SeminarService {
     return property;
   }
 
-  async create(dto: CreateSeminarDto) {
-    return await this.seminarRepo.save(dto);
+  async create(dto: CreateSeminarDto, creatorId: number) {
+    // Cari user yang akan menjadi creator seminar
+    const creator = await this.userRepo.findOne({ where: { id: creatorId } });
+
+    if (!creator) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Buat instance seminar baru dan tetapkan creator
+    const seminar = this.seminarRepo.create({
+      ...dto,
+      creator,
+    });
+
+    // Simpan seminar ke database
+    return await this.seminarRepo.save(seminar);
   }
 
   async update(id: number, dto: UpdateSeminarDto) {
@@ -68,5 +83,65 @@ export class SeminarService {
 
     const participant = this.seminarParticipantRepo.create({ seminar, user });
     return this.seminarParticipantRepo.save(participant);
+  }
+
+  async getUserJoinedSeminars(userId: number): Promise<Seminar[]> {
+    const user = await this.userRepo.findOne({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const seminars = await this.seminarRepo
+      .createQueryBuilder('seminar')
+      .innerJoinAndSelect(
+        'seminar.participants',
+        'participant',
+        'participant.userId = :userId',
+        { userId },
+      )
+      .getMany();
+
+    return seminars;
+  }
+
+  async getCreatedSeminars(userId: number): Promise<Seminar[]> {
+    // Memeriksa apakah user ada
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Mengambil semua seminar yang dibuat oleh user
+    const seminars = await this.seminarRepo.find({
+      where: { creator: { id: userId } },
+      relations: ['creator'],
+    });
+
+    return seminars;
+  }
+
+  async deleteSeminar(seminarId: number, userId: number): Promise<void> {
+    // Cari seminar berdasarkan seminarId
+    const seminar = await this.seminarRepo.findOne({
+      where: { id: seminarId },
+      relations: ['creator'], // untuk mendapatkan informasi tentang pembuat seminar
+    });
+
+    // Jika seminar tidak ditemukan, lemparkan NotFoundException
+    if (!seminar) {
+      throw new NotFoundException('Seminar not found');
+    }
+
+    // Periksa apakah seminar ini dibuat oleh pengguna yang meminta penghapusan
+    if (seminar.creator.id !== userId) {
+      throw new ForbiddenException(
+        'You are not allowed to delete this seminar',
+      );
+    }
+
+    // Hapus seminar
+    await this.seminarRepo.delete(seminarId);
   }
 }
