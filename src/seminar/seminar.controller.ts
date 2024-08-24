@@ -8,11 +8,15 @@ import {
   Patch,
   Post,
   Query,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { SeminarService } from './seminar.service';
 import { CreateSeminarDto } from './dto/createSeminar.dto';
 import { UpdateSeminarDto } from './dto/updateSeminar.dto';
 import { PaginationDto } from './dto/pagination.dto';
+import { JoinSeminarDto } from './dto/joinSeminar.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth/jwt-auth.guard';
 
 @Controller('seminar')
 export class SeminarController {
@@ -42,5 +46,11 @@ export class SeminarController {
   @Delete(':id')
   remove(@Param('id') id) {
     return this.seminarService.delete(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/join')
+  async joinSeminar(@Req() req, @Param('id', ParseIntPipe) id: number) {
+    return this.seminarService.joinSeminar(id, req.user.id);
   }
 }
